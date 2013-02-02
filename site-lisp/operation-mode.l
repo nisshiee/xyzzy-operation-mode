@@ -1,5 +1,5 @@
 ;; operation-mode
-;; version 1.0.0
+;; version 1.1.0
 (provide "operation-mode")
 (in-package "editor")
 
@@ -10,6 +10,8 @@
 		  copy-command-as-kill
 		  clear-copyed-attribute
 		  insert-log
+		  operation-mode-set-prompt
+		  operation-mode-reset-prompt
 		  *operation-copyed-attribute-bold*
 		  *operation-copyed-attribute-underline*
 		  *operation-copyed-attribute-strike-out*
@@ -34,6 +36,10 @@
   (setq buffer-mode 'operation-mode)
   (setq mode-name "Operation")
   (use-keymap *operation-mode-map*)
+  
+  ; var initialize
+  (make-local-variable 'operation-prompt)
+  (setq *operation-prompt* nil)
   
   ; load keyword
   (and *operation-keyword-file*
@@ -84,6 +90,7 @@
 (defvar *operation-log-attribute-strike-out* nil)
 (defvar *operation-log-attribute-foreground* 2)
 (defvar *operation-log-attribute-background* 0)
+(defvar *operation-prompt* nil)
 
 ; actions
 (defun copy-command-as-kill ()
@@ -94,14 +101,20 @@
   (setq *this-command* 'copy-command-as-kill))
 
 (defun copy-command-first ()
-  (let ((start nil) (end nil))
+  (let ((start nil) (end nil) (line (current-line-number)))
 	(beginning-of-line)
 	(setq start (point))
 	(end-of-line)
 	(setq end (point))
+	(if *operation-prompt*
+		(progn (goto-char start)
+		  (if (search-forward *operation-prompt* t)
+			  (if (and (= line (current-line-number)) (not (= end (+ (point) 1))))
+				  (setq start (+ (point) 1))
+				(goto-char start)))))
 	(copy-region-as-kill start end)
 	(set-copyed-attribute start end)
-	(next-virtual-line)
+	(next-line)
 	(beginning-of-line)))
 
 (defun copy-command-continuously ()
@@ -109,7 +122,7 @@
 	(beginning-of-line)
 	(open-line)
 	(setq start (point))
-	(next-virtual-line)
+	(next-line)
 	(end-of-line)
 	(setq end (point))
 	(append-next-kill)
@@ -117,7 +130,7 @@
 	(set-copyed-attribute start end)
 	(goto-char start)
 	(delete-char)
-	(next-virtual-line)
+	(next-line)
 	(beginning-of-line)))
 
 (defun set-copyed-attribute (start end)
@@ -163,3 +176,13 @@
 					  :strike-out *operation-log-attribute-strike-out*
 					  :foreground *operation-log-attribute-foreground*
 					  :background *operation-log-attribute-background*))
+
+(defun operation-mode-set-prompt (prompt)
+  (interactive "sInput Prompt: ")
+  (if (stringp prompt)
+	  (setq *operation-prompt* prompt)
+	(setq *operation-prompt* nil)))
+
+(defun operation-mode-reset-prompt ()
+  (interactive)
+	(setq *operation-prompt* nil))
