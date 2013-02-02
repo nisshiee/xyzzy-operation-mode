@@ -1,4 +1,5 @@
 ;; operation-mode
+;; version 1.1.0
 (provide "operation-mode")
 (in-package "editor")
 
